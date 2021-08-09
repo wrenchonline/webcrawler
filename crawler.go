@@ -266,11 +266,11 @@ func (spider *Spider) Crawler(url string, function interface{}) (chromecontext, 
 		if err != nil {
 			log.Println(err.Error())
 		}
-		_ctx, _cancel = context.WithTimeout(myContext.Ctx, 3*time.Second)
-		defer _cancel()
-		myContext.Ctx = _ctx
-		myContext.Cancel = cancel
-		spider.ListenTarget(myContext)
+		// _ctx, _cancel = context.WithTimeout(myContext.Ctx, 3*time.Second)
+		// defer _cancel()
+		// myContext.Ctx = _ctx
+		// myContext.Cancel = cancel
+		// spider.ListenTarget(myContext)
 		err = chromedp.Run(
 			myContext.Ctx,
 			fetch.Enable(),
