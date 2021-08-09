@@ -260,6 +260,7 @@ func (spider *Spider) Crawler(url string, function interface{}) (chromecontext, 
 		spider.ListenTarget(myContext)
 		err = chromedp.Run(
 			myContext.Ctx,
+			fetch.Enable(),
 			spider.CommitBybut(),
 		)
 		if err != nil {
@@ -269,8 +270,10 @@ func (spider *Spider) Crawler(url string, function interface{}) (chromecontext, 
 		defer _cancel()
 		myContext.Ctx = _ctx
 		myContext.Cancel = cancel
+		spider.ListenTarget(myContext)
 		err = chromedp.Run(
 			myContext.Ctx,
+			fetch.Enable(),
 			spider.ChlikByLink(),
 		)
 		if err != nil {
