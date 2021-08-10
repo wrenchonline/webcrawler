@@ -107,9 +107,9 @@ func (spider *Spider) ListenTarget(ctx context.Context, extends interface{}) {
 		Responses := []map[string]string{}
 		switch ev := ev.(type) {
 		case *runtime.EventConsoleAPICalled:
-			fmt.Printf("* console.%s call:\n", ev.Type)
+			//fmt.Printf("* console.%s call:\n", ev.Type)
 			for _, arg := range ev.Args {
-				fmt.Printf("%s - %s\n", arg.Type, string(arg.Value))
+				//fmt.Printf("%s - %s\n", arg.Type, string(arg.Value))
 				Response[string(ev.Type)] = strings.ReplaceAll(string(arg.Value), "\"", "")
 				Responses = append(Responses, Response)
 			}
@@ -117,8 +117,8 @@ func (spider *Spider) ListenTarget(ctx context.Context, extends interface{}) {
 				spider.Responses <- Responses
 			}()
 		case *runtime.EventExceptionThrown:
-			s := ev.ExceptionDetails.Error()
-			fmt.Printf("* %s\n", s)
+			//s := ev.ExceptionDetails.Error()
+			//fmt.Printf("* %s\n", s)
 		case *fetch.EventRequestPaused:
 			//log.Printf("fetch.EventRequestPaused:%v \n", ev)
 			go func(ctx context.Context, ev *fetch.EventRequestPaused) {
@@ -148,11 +148,9 @@ func (spider *Spider) ListenTarget(ctx context.Context, extends interface{}) {
 					log.Println("ListenTarget error", err)
 				}
 			}(ctx, ev)
-
 		case *page.EventJavascriptDialogOpening:
 			log.Println("EventJavascriptDialogOpening url:", ev.URL)
 		case *page.EventNavigatedWithinDocument:
-			//tracking history api
 			log.Println("EventNavigatedWithinDocument url:", ev.URL)
 		case *page.EventWindowOpen:
 			log.Println("EventWindowOpen url:", ev.URL)
@@ -166,7 +164,7 @@ func (spider *Spider) ListenTarget(ctx context.Context, extends interface{}) {
 			//fmt.Printf(" request url: %s\n", request.DocumentURL)
 			if ev.RedirectResponse != nil {
 				//url = request.DocumentURL
-				fmt.Printf("重定向 got redirect: %s\n", request.RedirectResponse.URL)
+				fmt.Printf("链接 %s: 重定向: %s\n", request.DocumentURL, request.RedirectResponse.URL)
 			}
 		case *network.EventResponseReceived:
 			// go func() {
@@ -380,13 +378,14 @@ func (spider *Spider) CommitBybutton(ctx context.Context) error {
 	for _, node := range nodes {
 		//自动填写表单
 		spider.fillForm(ctx)
-		//鼠标移动到button上
-		err := chromedp.MouseClickNode(node, chromedp.ButtonType(input.Left)).Do(ctx)
-		if err != nil {
-			log.Fatal("MouseClickNode error:", err)
+		if !(node.AttributeValue("type") == "hidden" || node.AttributeValue("display") == "none") {
+			//鼠标移动到button上
+			err := chromedp.MouseClickNode(node, chromedp.ButtonType(input.Left)).Do(ctx)
+			if err != nil {
+				log.Println("MouseClickNode error:", err)
+			}
+			//log.Printf("提交完成")
 		}
-		log.Printf("提交完成")
-		//检测是否返回
 	}
 
 	return nil
@@ -399,12 +398,10 @@ func (spider *Spider) fillForm(ctx context.Context) error {
 	//获取 input节点
 	err := chromedp.Nodes("//input", &nodes).Do(ctx)
 	if err != nil {
-		log.Fatal("fillForm error: ", err)
+		fmt.Println("fillForm error: ", err)
 	}
 	if len(nodes) == 0 {
-		log.Printf("no find node")
-		err = errors.New("no find node")
-		return err
+		return errors.New("no find node")
 	}
 	//移除input的 style 属性
 	err = chromedp.Evaluate(removeAttribute, nil).Do(ctx)
@@ -419,7 +416,7 @@ func (spider *Spider) fillForm(ctx context.Context) error {
 			log.Fatal("got  error:", err)
 		}
 		if !(node.AttributeValue("type") == "hidden" || node.AttributeValue("display") == "none") {
-			fmt.Println(node.Attributes)
+			//fmt.Println(node.Attributes)
 			//填写用户名
 			for _, name := range []string{"user", "用户名", "username"} {
 				if v := node.AttributeValue("name"); name == v {
@@ -449,7 +446,6 @@ func (spider *Spider) fillForm(ctx context.Context) error {
 					}
 				}
 			}
-
 		}
 
 	}
