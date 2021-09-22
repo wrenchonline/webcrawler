@@ -111,7 +111,7 @@ func (spider *Spider) ListenTarget(ctx context.Context, extends interface{}) {
 					strings.HasSuffix(ev.Request.URL, ".js") ||
 					strings.HasSuffix(ev.Request.URL, ".ico") ||
 					ev.Request.URL == spider.Scanhostpage {
-					log.Println("request:", ev.Request.URL)
+					fmt.Println("request:", ev.Request.URL)
 					a = fetch.ContinueRequest(ev.RequestID)
 				} else {
 					c := chromedp.FromContext(ctx)
@@ -164,7 +164,7 @@ func (spider *Spider) ListenTarget(ctx context.Context, extends interface{}) {
 			//fmt.Printf(" request url: %s\n", request.DocumentURL)
 			if ev.RedirectResponse != nil {
 				//url = request.DocumentURL
-				fmt.Printf("链接 %s: 重定向: %s\n", request.DocumentURL, request.RedirectResponse.URL)
+				fmt.Printf("链接 %s: 重定向到: %s\n", request.RedirectResponse.URL, request.DocumentURL)
 			}
 		case *network.EventResponseReceived:
 		case *network.EventResponseReceivedExtraInfo:
@@ -477,13 +477,15 @@ func (spider *Spider) ChlikLink(ctx context.Context) error {
 
 	chromedp.Location(&u).Do(ctx)
 
-	fmt.Println("url:-->:", u)
+	//fmt.Println("url:-->:", u)
 
 	relativepath, _ := filepath.Rel(u, spider.Scanhostpage)
 	relativepath = strings.ReplaceAll(relativepath, "\\", "/")
 	relativepath += "/."
-	fmt.Println("relativepath:", relativepath)
-
+	relativepath2 := strings.Replace(relativepath, "../", "", 1)
+	// fmt.Println("relativepath:", relativepath)
+	// fmt.Println("relativepath2:", relativepath2)
+	//LOOP:
 	err := chromedp.Nodes("a", &nodes, chromedp.ByQueryAll).Do(ctx)
 	if err != nil {
 		log.Println("ChlikLink error: ", err)
@@ -501,16 +503,25 @@ func (spider *Spider) ChlikLink(ctx context.Context) error {
 	}
 
 	for _, link := range nodes {
+
 		if !(link.AttributeValue("type") == "hidden" ||
 			link.AttributeValue("display") == "none" ||
 			link.AttributeValue("href") == relativepath ||
+			link.AttributeValue("href") == relativepath2 ||
 			link.AttributeValue("href") == ".") {
-			log.Println(link.Attributes)
-			err := chromedp.MouseClickNode(link, chromedp.ButtonLeft).Do(ctx)
+			_, err := chromedp.RunResponse(ctx, chromedp.MouseClickNode(link, chromedp.ButtonLeft))
+			//log.Println(response)
+			//err := chromedp.MouseClickNode(link, chromedp.ButtonLeft).Do(ctx)
 			if err != nil {
-				log.Println("ChlikLink MouseClickNode error: ", err)
 				//出现(-32000)error 代表dom节点已经更新，原来chromedp.Nodes获取的节点id失效
+				//log.Println(link.Attributes)
+				//log.Println("ChlikLink MouseClickNode error: ", err)
+				if funk.Contains(err.Error(), "-32000") {
+					log.Println("ChlikLink MouseClickNode error: ", err)
+				}
+
 			}
+
 		}
 	}
 
@@ -521,14 +532,13 @@ func main() {
 	Spider := Spider{}
 	Spider.Init()
 	Spider.Scanhostpage = `http://localhost/`
-	c := Spider.SetCookie("PHPSESSID", "6sjhof6augo941cc7pikshpq4i", "localhost", "/", true, false)
+	c := Spider.SetCookie("PHPSESSID", "n4ievd1cbialtlop66k2r70us6", "localhost", "/", true, false)
 	a := Spider.SetCookie("security", "low", "localhost", "/", true, false)
 	Spider.Cookies = append(Spider.Cookies, c)
 	Spider.Cookies = append(Spider.Cookies, a)
 	ctx, _, err := Spider.Crawler(Spider.Scanhostpage, nil)
 	Requests := Spider.Requests
 	for _, Request := range Requests {
-		//log.Println("request url:", Requests.URL)
 		if _, ok := ctx.Deadline(); ok {
 			log.Println("Ctx is Deadline")
 			break
